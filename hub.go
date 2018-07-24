@@ -12,6 +12,7 @@ type boardcast struct {
 	msg     []byte
 }
 
+// Hub type
 type Hub struct {
 	// Registered clients.
 	clients map[*Client]bool
@@ -22,15 +23,15 @@ type Hub struct {
 	// Register requests from the clients.
 	register chan *Client
 
-	// Unregister requests from clients.
-	unregister chan *Client
+	// UnRegister requests from clients.
+	unRegister chan *Client
 }
 
 func newHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan boardcast),
 		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		unRegister: make(chan *Client),
 		clients:    make(map[*Client]bool),
 	}
 }
@@ -40,7 +41,7 @@ func (h *Hub) run() {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
-		case client := <-h.unregister:
+		case client := <-h.unRegister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
