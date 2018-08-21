@@ -48,7 +48,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send    chan []byte
+	send    chan string
 	channel string
 }
 
@@ -94,7 +94,7 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.send:
+		case msg, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
@@ -106,14 +106,9 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
-			}
+			w.Write([]byte(msg))
 
 			if err := w.Close(); err != nil {
 				return
@@ -134,7 +129,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request, channel string) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), channel: channel}
+	client := &Client{hub: hub, conn: conn, send: make(chan string, 256), channel: channel}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
